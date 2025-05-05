@@ -2,14 +2,15 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fases de Vênus 3D - Sem Órbitas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fases de Vênus 3D</title>
     <style>
         body { 
             margin: 0;
             overflow: hidden;
             font-family: Arial, sans-serif;
             background-color: #000;
+            touch-action: pan-y;
         }
         #container {
             position: absolute;
@@ -25,38 +26,53 @@
             z-index: 100;
             pointer-events: none;
             background-color: rgba(0,0,0,0.7);
-            padding: 10px;
+            padding: 5px 0;
+        }
+        #info h2 {
+            font-size: clamp(16px, 4vw, 24px);
+            margin: 5px 0;
+        }
+        #info p {
+            font-size: clamp(12px, 3vw, 16px);
+            margin: 5px 0;
         }
         #controls {
             position: absolute;
-            bottom: 20px;
+            bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
+            width: 95%;
+            max-width: 500px;
             z-index: 100;
             background-color: rgba(0,0,0,0.7);
-            padding: 10px;
+            padding: 8px;
             border-radius: 5px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         .mode-buttons {
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            width: 100%;
         }
         .action-buttons {
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            width: 100%;
         }
         button {
-            padding: 8px 15px;
+            padding: 6px 12px;
+            font-size: clamp(12px, 3vw, 14px);
             background-color: #333;
             color: white;
             border: 1px solid #ffcc00;
             border-radius: 3px;
             cursor: pointer;
             font-weight: bold;
+            flex: 1;
+            min-height: 36px;
         }
         button.active {
             background-color: #ffcc00;
@@ -64,11 +80,12 @@
         }
         #phase-info {
             color: white;
-            font-size: 16px;
+            font-size: clamp(12px, 3vw, 14px);
             text-align: center;
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 3px;
+            width: 100%;
         }
         #loading {
             position: absolute;
@@ -76,7 +93,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            font-size: 18px;
+            font-size: clamp(14px, 4vw, 18px);
             z-index: 101;
         }
         #btn-pause {
@@ -133,25 +150,36 @@
             let emTransicao = false;
             let tempoTransicao = 0;
             let pauseState = false;
+            let isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
             // Cena
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000011);
 
-            // Câmera
+            // Câmera - ajuste para mobile
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 30, 50);
+            if (isMobile) {
+                camera.position.set(0, 20, 30); // Posição mais próxima para mobile
+            } else {
+                camera.position.set(0, 30, 50);
+            }
             camera.lookAt(0, 0, 0);
 
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Otimização para mobile
             document.getElementById('container').prepend(renderer.domElement);
 
-            // Controles
+            // Controles - ajuste para touch
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            if (isMobile) {
+                controls.panSpeed = 0.3;
+                controls.rotateSpeed = 0.5;
+                controls.touchDampingFactor = 0.1;
+            }
 
             // Luz
             const ambientLight = new THREE.AmbientLight(0x404040);
@@ -161,8 +189,10 @@
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
             scene.add(directionalLight);
 
-            // Criar corpos celestes
-            const solGeometry = new THREE.SphereGeometry(5, 32, 32);
+            // Criar corpos celestes com tamanhos ajustados para mobile
+            const scaleFactor = isMobile ? 0.8 : 1;
+            
+            const solGeometry = new THREE.SphereGeometry(5 * scaleFactor, 32, 32);
             const solMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0xffff00,
                 specular: 0x111111,
@@ -173,7 +203,7 @@
             sol = new THREE.Mesh(solGeometry, solMaterial);
             scene.add(sol);
 
-            const terraGeometry = new THREE.SphereGeometry(2, 32, 32);
+            const terraGeometry = new THREE.SphereGeometry(2 * scaleFactor, 32, 32);
             const terraMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0x1a66ff,
                 specular: 0x111111,
@@ -184,7 +214,7 @@
             terra = new THREE.Mesh(terraGeometry, terraMaterial);
             scene.add(terra);
 
-            const venusGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+            const venusGeometry = new THREE.SphereGeometry(1.5 * scaleFactor, 32, 32);
             const venusMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0xe6b800,
                 specular: 0x111111,
@@ -202,6 +232,7 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
 
+            // Funções de controle (manter as mesmas do código anterior)
             document.getElementById('btn-heliocentrico').addEventListener('click', function() {
                 modeloHeliocentrico = true;
                 document.getElementById('btn-heliocentrico').classList.add('active');
@@ -232,39 +263,27 @@
                 document.getElementById('btn-pause').textContent = pauseState ? "Continuar" : "Pausar";
             });
 
-            // Função para calcular o tempo até a próxima fase cheia
+            // Funções de cálculo (manter as mesmas do código anterior)
             function calcularProximaCheia(t) {
-                // Período sinódico de Vênus (~584 dias terrestres)
-                const periodo = (2 * Math.PI) / (1.6 - 1); // 1.6 é a velocidade angular de Vênus
+                const periodo = (2 * Math.PI) / (1.6 - 1);
                 const faseAtual = ((t * 1.6) % (2 * Math.PI)) - (t % (2 * Math.PI));
                 const tempoParaCheia = (Math.PI - faseAtual) / (1.6 - 1);
-                
                 return tempoParaCheia > 0 ? tempoParaCheia : tempoParaCheia + periodo;
             }
 
-            // Função para determinar a fase de Vênus
             function determinarFaseVenus(posVenus, posSol, posTerra, isGeocentric) {
-                // Vetor Terra-Vênus
                 const terraVenus = new THREE.Vector3().subVectors(posVenus, posTerra);
-                // Vetor Terra-Sol
                 const terraSol = new THREE.Vector3().subVectors(posSol, posTerra);
-                
-                // Ângulo entre os vetores (em radianos)
                 let angulo = terraVenus.angleTo(terraSol);
                 
-                // No modelo geocêntrico, Vênus nunca pode estar em oposição ao Sol
                 if (isGeocentric) {
-                    // Limitar o ângulo máximo para simular o modelo ptolomaico
-                    const maxAngle = Math.PI * 0.4; // ~72 graus
+                    const maxAngle = Math.PI * 0.4;
                     angulo = Math.min(angulo, maxAngle);
-                    
-                    // Determinar a fase no geocentrismo
                     if (angulo < Math.PI/8) return { fase: "Nova (invisível)", angulo };
                     if (angulo < Math.PI/4) return { fase: "Crescente fina", angulo };
                     if (angulo < Math.PI/3) return { fase: "Quarto crescente", angulo };
                     return { fase: "Gibosa crescente", angulo };
                 } else {
-                    // Determinar a fase no heliocentrismo
                     if (angulo < Math.PI/6) return { fase: "Nova (invisível)", angulo };
                     if (angulo < Math.PI/3) return { fase: "Crescente fina", angulo };
                     if (angulo < Math.PI/2) return { fase: "Quarto crescente", angulo };
@@ -287,13 +306,10 @@
                     return;
                 }
                 
-                // Transição para fase cheia
                 if (emTransicao && modeloHeliocentrico) {
                     const tempoAlvo = tempoTransicao + calcularProximaCheia(tempoTransicao);
                     const delta = tempoAlvo - tempo;
-                    
                     if (delta > 0.01) {
-                        // Acelerar suavemente para a fase cheia
                         tempo += Math.min(delta * 0.05, velocidadeOrbital * 5);
                     } else {
                         emTransicao = false;
@@ -303,36 +319,22 @@
                 }
                 
                 if (modeloHeliocentrico) {
-                    // Modo heliocêntrico
                     sol.position.set(0, 0, 0);
                     terra.position.set(20 * Math.cos(tempo), 0, 20 * Math.sin(tempo));
                     venus.position.set(12 * Math.cos(tempo * 1.6), 0, 12 * Math.sin(tempo * 1.6));
-                    
-                    // Atualizar luz direcional
                     directionalLight.position.copy(sol.position).normalize();
                 } else {
-                    // Modo geocêntrico
                     terra.position.set(0, 0, 0);
                     sol.position.set(20 * Math.cos(tempo), 0, 20 * Math.sin(tempo));
-                    
                     const deferenteX = 12 * Math.cos(tempo * 1.6);
                     const deferenteZ = 12 * Math.sin(tempo * 1.6);
-                    
                     const epicicloX = 8 * Math.cos(tempo * 3.2);
                     const epicicloZ = 8 * Math.sin(tempo * 3.2);
-                    
-                    venus.position.set(
-                        deferenteX + epicicloX,
-                        0,
-                        deferenteZ + epicicloZ
-                    );
-                    
-                    // Atualizar luz direcional
+                    venus.position.set(deferenteX + epicicloX, 0, deferenteZ + epicicloZ);
                     directionalLight.position.copy(sol.position).normalize();
                 }
                 
-                // Atualizar fase de Vênus
-                const { fase, angulo } = determinarFaseVenus(
+                const { fase } = determinarFaseVenus(
                     venus.position,
                     sol.position,
                     terra.position,
@@ -340,15 +342,12 @@
                 );
                 document.getElementById('phase-indicator').textContent = `Fase de Vênus: ${fase}`;
                 
-                // Atualizar contador para próxima fase cheia (apenas no heliocentrismo)
                 if (modeloHeliocentrico) {
                     proximaCheia = calcularProximaCheia(tempo);
                     const dias = Math.round(proximaCheia / velocidadeOrbital);
                     document.getElementById('next-full').textContent = `Próxima fase cheia em: ${dias} dias`;
-                    document.getElementById('btn-go-full').style.display = 'block';
                 } else {
                     document.getElementById('next-full').textContent = '';
-                    document.getElementById('btn-go-full').style.display = 'none';
                 }
                 
                 controls.update();

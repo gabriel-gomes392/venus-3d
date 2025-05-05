@@ -156,29 +156,32 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000011);
 
-            // Câmera - ajuste para mobile
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            if (isMobile) {
-                camera.position.set(0, 20, 30); // Posição mais próxima para mobile
-            } else {
-                camera.position.set(0, 30, 50);
-            }
+            // Configurações de tamanho e distância para mobile/desktop
+            const mobileScale = isMobile ? 0.6 : 1;
+            const distOrbitalTerra = isMobile ? 15 : 20;
+            const distOrbitalVenus = isMobile ? 9 : 12;
+            const tamanhoSol = isMobile ? 3 : 5;
+            const tamanhoTerra = isMobile ? 1.2 : 2;
+            const tamanhoVenus = isMobile ? 0.9 : 1.5;
+
+            // Câmera ajustada para mobile
+            camera = new THREE.PerspectiveCamera(isMobile ? 45 : 60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, isMobile ? 15 : 30, isMobile ? 40 : 50);
             camera.lookAt(0, 0, 0);
 
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Otimização para mobile
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('container').prepend(renderer.domElement);
 
-            // Controles - ajuste para touch
+            // Controles otimizados para touch
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             if (isMobile) {
                 controls.panSpeed = 0.3;
                 controls.rotateSpeed = 0.5;
-                controls.touchDampingFactor = 0.1;
             }
 
             // Luz
@@ -189,10 +192,8 @@
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
             scene.add(directionalLight);
 
-            // Criar corpos celestes com tamanhos ajustados para mobile
-            const scaleFactor = isMobile ? 0.8 : 1;
-            
-            const solGeometry = new THREE.SphereGeometry(5 * scaleFactor, 32, 32);
+            // Criar corpos celestes com tamanhos ajustados
+            const solGeometry = new THREE.SphereGeometry(tamanhoSol * mobileScale, 32, 32);
             const solMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0xffff00,
                 specular: 0x111111,
@@ -203,7 +204,7 @@
             sol = new THREE.Mesh(solGeometry, solMaterial);
             scene.add(sol);
 
-            const terraGeometry = new THREE.SphereGeometry(2 * scaleFactor, 32, 32);
+            const terraGeometry = new THREE.SphereGeometry(tamanhoTerra * mobileScale, 32, 32);
             const terraMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0x1a66ff,
                 specular: 0x111111,
@@ -214,7 +215,7 @@
             terra = new THREE.Mesh(terraGeometry, terraMaterial);
             scene.add(terra);
 
-            const venusGeometry = new THREE.SphereGeometry(1.5 * scaleFactor, 32, 32);
+            const venusGeometry = new THREE.SphereGeometry(tamanhoVenus * mobileScale, 32, 32);
             const venusMaterial = new THREE.MeshPhongMaterial({ 
                 color: 0xe6b800,
                 specular: 0x111111,
@@ -232,7 +233,6 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
 
-            // Funções de controle (manter as mesmas do código anterior)
             document.getElementById('btn-heliocentrico').addEventListener('click', function() {
                 modeloHeliocentrico = true;
                 document.getElementById('btn-heliocentrico').classList.add('active');
@@ -263,7 +263,6 @@
                 document.getElementById('btn-pause').textContent = pauseState ? "Continuar" : "Pausar";
             });
 
-            // Funções de cálculo (manter as mesmas do código anterior)
             function calcularProximaCheia(t) {
                 const periodo = (2 * Math.PI) / (1.6 - 1);
                 const faseAtual = ((t * 1.6) % (2 * Math.PI)) - (t % (2 * Math.PI));
@@ -296,7 +295,6 @@
                 }
             }
 
-            // Animação
             function animate() {
                 requestAnimationFrame(animate);
                 
@@ -320,16 +318,16 @@
                 
                 if (modeloHeliocentrico) {
                     sol.position.set(0, 0, 0);
-                    terra.position.set(20 * Math.cos(tempo), 0, 20 * Math.sin(tempo));
-                    venus.position.set(12 * Math.cos(tempo * 1.6), 0, 12 * Math.sin(tempo * 1.6));
+                    terra.position.set(distOrbitalTerra * Math.cos(tempo), 0, distOrbitalTerra * Math.sin(tempo));
+                    venus.position.set(distOrbitalVenus * Math.cos(tempo * 1.6), 0, distOrbitalVenus * Math.sin(tempo * 1.6));
                     directionalLight.position.copy(sol.position).normalize();
                 } else {
                     terra.position.set(0, 0, 0);
-                    sol.position.set(20 * Math.cos(tempo), 0, 20 * Math.sin(tempo));
-                    const deferenteX = 12 * Math.cos(tempo * 1.6);
-                    const deferenteZ = 12 * Math.sin(tempo * 1.6);
-                    const epicicloX = 8 * Math.cos(tempo * 3.2);
-                    const epicicloZ = 8 * Math.sin(tempo * 3.2);
+                    sol.position.set(distOrbitalTerra * Math.cos(tempo), 0, distOrbitalTerra * Math.sin(tempo));
+                    const deferenteX = distOrbitalVenus * Math.cos(tempo * 1.6);
+                    const deferenteZ = distOrbitalVenus * Math.sin(tempo * 1.6);
+                    const epicicloX = (distOrbitalVenus * 0.66) * Math.cos(tempo * 3.2);
+                    const epicicloZ = (distOrbitalVenus * 0.66) * Math.sin(tempo * 3.2);
                     venus.position.set(deferenteX + epicicloX, 0, deferenteZ + epicicloZ);
                     directionalLight.position.copy(sol.position).normalize();
                 }
